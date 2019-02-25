@@ -6,7 +6,7 @@ class TowerOfHanoiGame(GameMaster):
 
     def __init__(self):
         super().__init__()
-        
+
     def produceMovableQuery(self):
         """
         See overridden parent class method for more information.
@@ -34,7 +34,46 @@ class TowerOfHanoiGame(GameMaster):
             A Tuple of Tuples that represent the game state
         """
         ### student code goes here
-        pass
+        peg1 = []
+        peg2 = []
+        peg3 = []
+
+        ask1 = parse_input("fact: (inst ?peg peg)")
+        all_pegs = self.kb.kb_ask(ask1)
+
+        for bindings_peg in all_pegs:
+            if not Fact(instantiate(Statement(("empty", "?peg")), bindings_peg)) in self.kb.facts:
+                all_disks = self.kb.kb_ask(Fact(instantiate(Statement(("on", "?disk", "?peg")), bindings_peg)))
+                initial_disks = []
+
+                for bindings_disk in all_disks:
+                    disk_first = int(bindings_disk.bindings_dict["?disk"][4])
+                    initial_disks.append(disk_first)
+                peg_first = int(bindings_peg.bindings_dict["?peg"][3])
+
+                if peg_first == 1:
+                    if initial_disks:
+                        while initial_disks:
+                            smallest = min(initial_disks)
+                            peg1.append(smallest)
+                            initial_disks.remove(smallest)
+
+                elif peg_first == 2:
+                    if initial_disks:
+                        while initial_disks:
+                            smallest = min(initial_disks)
+                            peg2.append(smallest)
+                            initial_disks.remove(smallest)
+
+                else:
+                    if initial_disks:
+                        while initial_disks:
+                            smallest = min(initial_disks)
+                            peg3.append(smallest)
+                            initial_disks.remove(smallest)
+
+        state = (tuple(peg1), tuple(peg2), tuple(peg3))
+        return state
 
     def makeMove(self, movable_statement):
         """
@@ -53,7 +92,28 @@ class TowerOfHanoiGame(GameMaster):
             None
         """
         ### Student code goes here
-        pass
+        index = movable_statement.terms
+        disk = index[0]
+        start = index[1]
+        end = index[2]
+
+        new_top = self.kb.kb_ask(Fact(Statement(("onTop", disk, "?obj"))))[0]
+        rule1 = Fact(instantiate(Statement(("onTop", disk, "?obj")), new_top))
+        ask1 = Fact(instantiate(Statement(("top", "?obj", start)), new_top))
+        old_top = self.kb.kb_ask(Fact(Statement(("top", "?obj", end))))[0]
+
+        rule2 = Fact(instantiate(Statement(("top", "?obj", end)), old_top))
+        ask2 = Fact(instantiate(Statement(("onTop", disk, "?obj")), old_top))
+
+        self.kb.kb_retract(Fact(Statement(("on", disk, start))))
+        self.kb.kb_retract(Fact(Statement(("top", disk, start))))
+        self.kb.kb_retract(rule1)
+        self.kb.kb_retract(rule2)
+        self.kb.kb_assert(Fact(Statement(("on", disk, end))))
+        self.kb.kb_assert(Fact(Statement(("top", disk, end))))
+        self.kb.kb_assert(ask1)
+        self.kb.kb_assert(ask2)
+
 
     def reverseMove(self, movable_statement):
         """
@@ -100,7 +160,27 @@ class Puzzle8Game(GameMaster):
             A Tuple of Tuples that represent the game state
         """
         ### Student code goes here
-        pass
+        cols_rows = {"pos1": ("pos1", "pos2", "pos3"),"pos2": ("pos1", "pos2", "pos3"),"pos3": ("pos1", "pos2", "pos3")}
+        state = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+
+        for pos_y in cols_rows:
+            y = int(pos_y[3]) - 1
+
+            for pos_x in cols_rows[pos_y]:
+                x = int(pos_x[3]) - 1
+
+                ask1 = Fact(Statement(["coord", "?tile", pos_x, pos_y]))
+                binding = self.kb.kb_ask(ask1)[0]
+                tile1 = binding.bindings_dict["?tile"][4]
+                tile_start = 0
+
+                if tile1 == 'y':
+                    tile_start = -1
+                else:
+                    tile_start = int(tile1)
+                state[y][x] = tile_start
+
+        return tuple([tuple(state[0]), tuple(state[1]), tuple(state[2])])
 
     def makeMove(self, movable_statement):
         """
@@ -119,7 +199,21 @@ class Puzzle8Game(GameMaster):
             None
         """
         ### Student code goes here
-        pass
+        index = movable_statement.terms
+        tile = index[0]
+
+        start_x = index[1]
+        start_y = index[2]
+        end_x = index[3]
+        end_y = index[4]
+
+
+
+        self.kb.kb_retract(Fact(Statement(("coord", tile, start_x, start_y))))
+        self.kb.kb_retract(Fact(Statement(("coord", "empty", end_x, end_y))))
+        self.kb.kb_assert(Fact(Statement(("coord", tile, end_x, end_y))))
+        self.kb.kb_assert(Fact(Statement(("coord", "empty", start_x, start_y))))
+
 
     def reverseMove(self, movable_statement):
         """
